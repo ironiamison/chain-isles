@@ -78,6 +78,31 @@ export interface Config {
 
     acceptLicense: boolean;
 
+    tokenGateEnabled: boolean;
+    tokenGateMint: string;
+    tokenGateMinAmount: string | number;
+    tokenGateSymbol: string;
+    tokenGateDecimals: number;
+
+    solanaCluster: string;
+    solanaProgramId: string;
+    solanaTreasury: string;
+    gameAuthorityKeypair: string;
+    gameAuthorityPublicKey: string;
+    gameAuthoritySecret: string;
+
+    stimulusEnabled: boolean;
+    stimulusBuyerRebateBps: string | number;
+    stimulusMinGoldPurchase: string | number;
+    stimulusMaxRebateGoldPerDay: string | number;
+    stimulusRequireIsleHold: boolean;
+    stimulusIsleTierBronze: string | number;
+    stimulusIsleTierSilver: string | number;
+    stimulusIsleTierGold: string | number;
+    stimulusIsleBronzeBonusBps: string | number;
+    stimulusIsleSilverBonusBps: string | number;
+    stimulusIsleGoldBonusBps: string | number;
+
     debugging: boolean;
     debugLevel: 'all';
     fsDebugging: boolean;
@@ -109,6 +134,57 @@ for (let key in envConfig) {
     let camelCaseKey = camelCase(key) as keyof Config;
 
     config[camelCaseKey] = envConfig[key] as never;
+}
+
+// Hosting platforms inject PORT; keep that over .env defaults.
+let { PORT, HOST } = process.env;
+
+if (PORT) config.port = Number(PORT);
+if (HOST) config.host = HOST;
+
+// Railway / Docker inject secrets directly — merge into config.
+const processEnvKeys = [
+    'GAME_AUTHORITY_SECRET',
+    'GAME_AUTHORITY_KEYPAIR',
+    'GAME_AUTHORITY_PUBLIC_KEY',
+    'TOKEN_GATE_MINT',
+    'TOKEN_GATE_ENABLED',
+    'TOKEN_GATE_MIN_AMOUNT',
+    'TOKEN_GATE_SYMBOL',
+    'TOKEN_GATE_DECIMALS',
+    'SKIP_DATABASE',
+    'MONGODB_HOST',
+    'MONGODB_PORT',
+    'MONGODB_USER',
+    'MONGODB_PASSWORD',
+    'MONGODB_DATABASE',
+    'MONGODB_TLS',
+    'MONGODB_SRV',
+    'MONGODB_AUTH_SOURCE',
+    'SOLANA_PROGRAM_ID',
+    'SOLANA_CLUSTER',
+    'SOLANA_TREASURY',
+    'STIMULUS_ENABLED',
+    'STIMULUS_BUYER_REBATE_BPS',
+    'STIMULUS_MIN_GOLD_PURCHASE',
+    'STIMULUS_MAX_REBATE_GOLD_PER_DAY',
+    'STIMULUS_REQUIRE_ISLE_HOLD',
+    'STIMULUS_ISLE_TIER_BRONZE',
+    'STIMULUS_ISLE_TIER_SILVER',
+    'STIMULUS_ISLE_TIER_GOLD',
+    'STIMULUS_ISLE_BRONZE_BONUS_BPS',
+    'STIMULUS_ISLE_SILVER_BONUS_BPS',
+    'STIMULUS_ISLE_GOLD_BONUS_BPS',
+    'CLIENT_DIST',
+    'ACCEPT_LICENSE'
+] as const;
+
+for (let key of processEnvKeys) {
+    let value = process.env[key];
+
+    if (value === undefined) continue;
+
+    config[camelCase(key) as keyof Config] = dotenvParseVariables({ [key]: value })[key] as never;
 }
 
 config.hubHost ||= config.host;

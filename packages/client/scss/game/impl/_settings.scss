@@ -83,3 +83,27 @@
 #joystick-enabled-checkbox[hidden] {
     display: none;
 }
+
+#wallet-name-settings {
+    margin-top: 0.5em;
+
+    h2 {
+        margin: 0 0 0.35em;
+        font-size: 1em;
+    }
+}
+
+.wallet-name-help,
+.wallet-name-status {
+    margin: 0.35em 0;
+    font-size: 0.75em;
+    line-height: 1.35;
+}
+
+.wallet-name-status {
+    color: #f5d76e;
+}
+
+#wallet-display-name-save {
+    margin-top: 0.5em;
+}

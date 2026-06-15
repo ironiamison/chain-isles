@@ -1,7 +1,11 @@
 ---
 import { t, getLanguage } from '@kaetram/common/i18n';
+import config from '@kaetram/common/config';
 
-let currentLanguage = getLanguage(),
+let tokenMint = (config.tokenGateMint || '').trim(),
+    tokenSymbol = config.tokenGateSymbol || 'TOKEN',
+
+ currentLanguage = getLanguage(),
     languages = [
         { locale: 'en', name: 'English' },
         { locale: 'de', name: 'Deutsch' },
@@ -18,8 +22,22 @@ let currentLanguage = getLanguage(),
     <section id="parchment" class="load-character slice-menu-fancy">
         <article id="load-character">
             <h1 class="title-decoration">{t('game:NAME')}</h1>
+            <p id="online-count" class="online-count">Players online: —</p>
 
             <form onsubmit={'return false'}>
+                <button
+                    type="button"
+                    id="play-as-guest"
+                    class="stroke slice-button-green guest-primary"
+                    title="Play as a guest"
+                    aria-label="Play as a guest"
+                >
+                    PLAY AS GUEST
+                </button>
+
+                <p class="login-divider">— or sign in with an account —</p>
+
+                <div id="legacy-login">
                 <input
                     type="text"
                     id="login-name-input"
@@ -43,18 +61,12 @@ let currentLanguage = getLanguage(),
 
                 <div class="validation-summary"></div>
 
-                <div class="button-row">
+                <div class="button-row login-options">
                     <label id="remember-me" class="check">
                         <input type="checkbox" aria-labelledby="remember-me-text" />
                         <span class="checkmark"></span>
 
                         <span id="remember-me-text">Remember Me</span>
-                    </label>
-                    <label id="guest" class="check">
-                        <input type="checkbox" aria-labelledby="guest-text" />
-                        <span class="checkmark"></span>
-
-                        <span id="guest-text">Play as a guest</span>
                     </label>
                 </div>
 
@@ -78,6 +90,39 @@ let currentLanguage = getLanguage(),
                     >
                         NEW ACCOUNT
                     </button>
+                </div>
+                </div>
+
+                {/* Hidden — toggled by the Play as Guest button */}
+                <label id="guest" class="check guest-hidden" hidden>
+                    <input type="checkbox" aria-labelledby="guest-text" />
+                    <span id="guest-text">Play as a guest</span>
+                </label>
+
+                <div id="wallet-connect" class="wallet-panel">
+                    <div class="wallet-actions">
+                        <button
+                            type="button"
+                            id="connect-wallet"
+                            class="stroke slice-button wallet-button"
+                            title="Connect Phantom Wallet"
+                            aria-label="Connect Phantom Wallet"
+                        >
+                            CONNECT WALLET
+                        </button>
+                        <button
+                            type="button"
+                            id="login-with-wallet"
+                            class="stroke slice-button wallet-button"
+                            title="Sign in with Phantom Wallet"
+                            aria-label="Sign in with Phantom Wallet"
+                        >
+                            PLAY WITH WALLET
+                        </button>
+                    </div>
+                    <span id="wallet-address" class="wallet-address" hidden></span>
+                    <p id="token-gate-notice" class="wallet-status token-gate-notice" hidden></p>
+                    <p id="wallet-status" class="wallet-status"></p>
                 </div>
             </form>
         </article>
@@ -311,17 +356,9 @@ let currentLanguage = getLanguage(),
             <h1 class="title-decoration">About</h1>
 
             <p>
-                Kaetram is a browser-based 2D MMORPG adventure. You play as an adventurer amongst
-                others and explore the world of Kaetram. Originally started as a fork of
-                BrowserQuest, Kaetram has evolved into its own game. In honour to the original idea,
-                the assets have been preserved and expanded upon. We are one of a few open-source
-                community driven game projects. We are always looking for assistance in terms of
-                programming, graphic artists, and/or music composers. Our source-code can be found
-                on our
-                <a target="_blank" href="https://github.com/Kaetram/Kaetram-Open"
-                    >GitHub Repository</a
-                >. If you would like to stay up-to-date with the project, make sure you join our
-                <a target="_blank" href="https://discord.gg/MmbGAaw">Discord server</a>.
+                Chain Isles is a Kaetram Solana fork — a browser-based 2D MMORPG. Explore the
+                archipelago, level your skills, fight monsters, trade with other players, and
+                connect a wallet to use the on-chain gold marketplace.
             </p>
 
             <div class="close-about">
@@ -349,15 +386,47 @@ let currentLanguage = getLanguage(),
         </span>
     </section>
 
-    <select id="lang-select" oninput={'location = "/" + this.value + "/"'}>
+    <div id="intro-topbar" class="intro-topbar">
         {
-            languages.map(({ locale, name }) => (
-                <option value={locale} selected={locale === currentLanguage}>
-                    {name}
-                </option>
-            ))
+            tokenMint && (
+                <div id="token-ca" class="token-ca">
+                    <span class="token-ca-label">{tokenSymbol} contract</span>
+                    <code id="token-ca-address" class="token-ca-address" title={tokenMint}>
+                        {tokenMint}
+                    </code>
+                    <div class="token-ca-actions">
+                        <button
+                            type="button"
+                            id="copy-token-ca"
+                            class="stroke slice-button token-ca-copy"
+                            title="Copy contract address"
+                            aria-label="Copy contract address"
+                        >
+                            COPY CA
+                        </button>
+                        <a
+                            class="token-ca-link clickable stroke slice-button"
+                            href={`https://solscan.io/token/${tokenMint}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            SOLSCAN
+                        </a>
+                    </div>
+                </div>
+            )
         }
-    </select>
+
+        <select id="lang-select" oninput={'location = "/" + this.value + "/"'}>
+            {
+                languages.map(({ locale, name }) => (
+                    <option value={locale} selected={locale === currentLanguage}>
+                        {name}
+                    </option>
+                ))
+            }
+        </select>
+    </div>
 
     <button id="world-select-button" class="slice-button" hidden>
         <strong class="stroke"></strong>
@@ -373,22 +442,6 @@ let currentLanguage = getLanguage(),
         <span>&ndash;</span>
         <div id="credits-link" class="clickable">
             <span id="toggle-credits">Credits</span>
-        </div>
-        <span>&ndash;</span>
-        <div id="discord-link" class="clickable">
-            <a class="footer-button" target="_blank" href="https://discord.gg/MmbGAaw">
-                <span>Discord</span>
-            </a>
-        </div>
-        <span>&ndash;</span>
-        <div class="clickable">
-            <a
-                class="footer-button"
-                target="_blank"
-                href="https://www.patreon.com/bePatron?u=29287394"
-            >
-                <span>Patreon</span>
-            </a>
         </div>
         <span>&ndash;</span>
         <div id="privacy" class="clickable">

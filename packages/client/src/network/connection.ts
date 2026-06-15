@@ -2,6 +2,7 @@ import Util from '../utils/util';
 
 import { inflate } from 'pako';
 import { Packets, Opcodes, Modules } from '@kaetram/common/network';
+import { walletDefaultDisplayName } from '@kaetram/common/util/wallet-login';
 
 import type App from '../app';
 import type Game from '../game';
@@ -212,6 +213,24 @@ export default class Connection {
         this.game.player.instance = data.instance!;
         this.game.player.serverId = data.serverId!;
 
+        // Wallet login sends a signed message instead of credentials.
+        if (this.app.isWalletLogin()) {
+            let auth = this.app.getWalletAuth();
+
+            if (!auth) return;
+
+            this.game.player.name = walletDefaultDisplayName(auth.wallet);
+
+            this.socket.send(Packets.Login, {
+                opcode: Opcodes.Login.Wallet,
+                wallet: auth.wallet,
+                message: auth.message,
+                signature: auth.signature
+            });
+
+            return this.app.clearWalletLoginMode();
+        }
+
         // Guest login doesn't require any credentials, send the packet right away.
         if (this.app.isGuest())
             return this.socket.send(Packets.Login, { opcode: Opcodes.Login.Guest });
@@ -337,23 +356,24 @@ export default class Connection {
     private handleEntityList(opcode: Opcodes.List, info: EntityListPacketData): void {
         switch (opcode) {
             case Opcodes.List.Spawns: {
-                let ids = new Set(
+                let existing = new Set(
                         Object.values(this.entities.getAll()).map((entity) => entity.instance)
                     ),
-                    known = new Set(info.entities!.filter((id) => ids.has(id))),
-                    newIds = info.entities!.filter((id) => !known.has(id));
+                    spawnSet = new Set(info.entities ?? []),
+                    newIds = [...spawnSet].filter((id) => !existing.has(id));
 
-                // Prepare the entities ready for despawning.
+                // Despawn entities no longer in the surrounding-region spawn list.
                 this.entities.decrepit = Object.values(this.entities.getAll()).filter(
                     (entity) =>
-                        !known.has(entity.instance) && entity.instance !== this.game.player.instance
+                        !spawnSet.has(entity.instance) &&
+                        entity.instance !== this.game.player.instance
                 );
 
-                // Clear the entities in the decrepit queue.
-                this.entities.clean();
+                // Defer clean so Spawn packets in the same batch are applied first.
+                queueMicrotask(() => this.entities.clean());
 
-                // Send the new id list request to the server.
-                this.socket.send(Packets.Who, newIds);
+                // Request any missing entities from the server.
+                if (newIds.length > 0) this.socket.send(Packets.Who, newIds);
                 break;
             }
 

@@ -11,7 +11,10 @@
         "rootDir": "./",
         "moduleResolution": "node",
         "baseUrl": "./packages",
-        "paths": { "@kaetram/*": ["*"] },
+        "paths": {
+            "@kaetram/solana": ["solana/src/index.ts"],
+            "@kaetram/*": ["*"]
+        },
         "types": ["@types/node", "@kaetram/common"],
         "allowImportingTsExtensions": true,
         // "resolvePackageJsonExports": true,

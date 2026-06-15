@@ -21,6 +21,7 @@ import Canvas from './renderer/canvas';
 import Updater from './renderer/updater';
 import Pathfinder from './utils/pathfinder';
 import Utils from './utils/util';
+import { startOnlineCountPolling } from './utils/online';
 import { agent, supportsWebGl } from './utils/detect';
 
 import { Packets } from '@kaetram/common/network';
@@ -214,6 +215,8 @@ export default class Game {
         if (this.map.hasCachedDate()) this.app.fadeMenu();
 
         this.menu.synchronize();
+
+        startOnlineCountPolling(['#online-count-game']);
 
         this.forceRendering();
     }

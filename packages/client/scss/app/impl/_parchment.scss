@@ -3,7 +3,7 @@
 #parchment {
     top: -3em;
     width: 38em;
-    height: 19em;
+    height: 21.5em;
     opacity: 0;
 
     select {
@@ -36,7 +36,7 @@
 
     box-sizing: border-box;
     width: 24em;
-    height: 16.5em;
+    height: 18.5em;
     margin: auto;
     padding: 0 0.25em;
 
@@ -52,8 +52,8 @@
         display: flex;
         flex: 1;
         flex-direction: column;
-        gap: 0;
-        justify-content: space-between;
+        gap: 0.25rem;
+        justify-content: flex-start;
 
         height: 100%;
 

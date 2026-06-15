@@ -184,6 +184,15 @@ export default class EntitiesController {
 
         this.addEntity(entity);
 
+        if (entity.isResource()) {
+            this.game.forceRendering();
+
+            if (!sprite.loaded)
+                sprite.image?.addEventListener('load', () => this.game.forceRendering(), {
+                    once: true
+                });
+        }
+
         // If the instance exists in the update queue, add the display info and remove it from the queue.
         if (info.instance in this.entityUpdateQueue) {
             entity.updateDisplayInfo(this.entityUpdateQueue[info.instance]);

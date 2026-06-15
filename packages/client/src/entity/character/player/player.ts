@@ -30,6 +30,8 @@ export default class Player extends Character {
     public pvpKills = -1;
     public pvpDeaths = -1;
 
+    public isWallet = false;
+
     public moveLeft = false;
     public moveRight = false;
     public moveUp = false;
@@ -106,6 +108,7 @@ export default class Player extends Character {
     public load(data: PlayerData, sync = false): void {
         this.instance = data.instance;
         this.name = data.name;
+        this.isWallet = !!data.isWallet;
         this.level = data.level!;
         this.movementSpeed = data.movementSpeed!;
         this.orientation = data.orientation!;

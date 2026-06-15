@@ -1,10 +1,14 @@
 import install from './lib/pwa';
 import Storage from './utils/storage';
 import Util from './utils/util';
+import { startOnlineCountPolling } from './utils/online';
 import { isMobile } from './utils/detect';
 import { onSecondaryPress } from './utils/press';
 
+import { formatTokenAmount, parseTokenAmount } from '@kaetram/solana';
+
 import type { SerializedServer } from '@kaetram/common/types/network';
+import type SolanaController from './solana/controller';
 
 type EmptyCallback = () => void;
 type KeyDownCallback = (e: KeyboardEvent) => void;
@@ -18,6 +22,8 @@ type ValidationType = 'status' | 'validation-error' | 'validation-warning';
 
 export default class App {
     public config = globalConfig;
+
+    public solana?: SolanaController;
 
     public storage: Storage = new Storage();
 
@@ -50,6 +56,7 @@ export default class App {
     private emailResetInput: HTMLInputElement = document.querySelector('#email-reset-input')!;
     private rememberMe: HTMLInputElement = document.querySelector('#remember-me input')!;
     private guest: HTMLInputElement = document.querySelector('#guest input')!;
+    private playAsGuestButton: HTMLButtonElement = document.querySelector('#play-as-guest')!;
 
     private about: HTMLElement = document.querySelector('#toggle-about')!;
     private credits: HTMLElement = document.querySelector('#toggle-credits')!;
@@ -58,12 +65,20 @@ export default class App {
     private validation: NodeListOf<HTMLElement> = document.querySelectorAll('.validation-summary')!;
     private loading: HTMLElement = document.querySelector('.loader')!;
     private langSelect: HTMLElement = document.querySelector('#lang-select')!;
+    private introTopbar: HTMLElement | null = document.querySelector('#intro-topbar');
     private worldSelectButton: HTMLElement = document.querySelector('#world-select-button')!;
     private gameVersion: HTMLElement = document.querySelector('#game-version')!;
 
     private currentScroll = 'load-character';
     private loggingIn = false; // Used to prevent interactions when trying to log in.
     private menuHidden = false; // Used to reroute key input to the callback.
+    private walletLoginMode = false;
+
+    private walletAuth?: {
+        wallet: string;
+        message: string;
+        signature: string;
+    };
 
     public statusMessage = '';
 
@@ -103,6 +118,12 @@ export default class App {
 
         this.loginForm.addEventListener('submit', this.login.bind(this));
         this.registerForm.addEventListener('submit', this.login.bind(this));
+        this.playAsGuestButton.addEventListener('click', () => this.playAsGuest());
+
+        for (let input of this.loginForm.querySelectorAll<HTMLInputElement>(
+            'input[type="text"], input[type="password"]'
+        ))
+            input.addEventListener('input', () => (this.guest.checked = false));
 
         this.registerButton.addEventListener('click', () => this.openScroll('create-character'));
         this.cancelRegister.addEventListener('click', () => this.openScroll('load-character'));
@@ -126,6 +147,9 @@ export default class App {
         this.worldSelectButton.addEventListener('click', () => this.openScroll('world-select'));
 
         this.gameVersion.textContent = `${this.config.version}${this.config.minor}`;
+
+        startOnlineCountPolling(['#online-count']);
+        this.setupTokenCaCopy();
 
         // Document callbacks such as clicks and keystrokes.
         document.addEventListener('keydown', (e: KeyboardEvent) => e.key !== 'Enter');
@@ -207,6 +231,7 @@ export default class App {
 
         this.loadLogin();
         this.loadWorlds();
+        this.applyTokenGateUi();
 
         if (!('indexedDB' in window))
             this.setValidation(
@@ -221,6 +246,11 @@ export default class App {
      */
 
     private login(): void {
+        if (this.isTokenGateActive() && !this.isWalletLogin() && !this.isGuest()) {
+            this.sendError(this.getTokenGateError());
+            return;
+        }
+
         if (this.loggingIn || this.statusMessage || !this.verifyForm()) return;
 
         this.clearErrors();
@@ -234,13 +264,24 @@ export default class App {
     }
 
     /**
+     * One-click guest login from the main menu.
+     */
+    private playAsGuest(): void {
+        if (this.loggingIn || this.statusMessage) return;
+
+        this.guest.checked = true;
+        this.rememberMe.checked = false;
+        this.login();
+    }
+
+    /**
      * Checks if the remember me checkbox is toggled and
      * saves the username and password to local storage.
      */
 
     private saveLogin(): void {
-        // Prevent saving login if logging in as guest.
-        if (this.isGuest()) return;
+        // Prevent saving login if logging in as guest or with a wallet.
+        if (this.isGuest() || this.isWalletLogin()) return;
 
         // Always save the state of the remember me button.
         this.storage.setRemember(this.isRememberMe());
@@ -265,6 +306,7 @@ export default class App {
 
         this.menuHidden = false;
         this.langSelect.hidden = false;
+        if (this.introTopbar) this.introTopbar.hidden = false;
         this.worldSelectButton.hidden = false;
         this.gameVersion.hidden = false;
     }
@@ -281,6 +323,7 @@ export default class App {
 
         this.menuHidden = true;
         this.langSelect.hidden = true;
+        if (this.introTopbar) this.introTopbar.hidden = true;
         this.worldSelectButton.hidden = true;
         this.gameVersion.hidden = true;
 
@@ -340,8 +383,8 @@ export default class App {
      */
 
     private verifyForm(): boolean {
-        // Guest users don't need to input anything.
-        if (this.isGuest()) return true;
+        // Guest and wallet users don't need username/password.
+        if (this.isGuest() || this.isWalletLogin()) return true;
 
         // Check the username is not empty.
         if (!this.getUsername())
@@ -519,6 +562,122 @@ export default class App {
 
     public isGuest(): boolean {
         return this.guest.checked;
+    }
+
+    /**
+     * @returns Whether the next login uses a verified Solana wallet signature.
+     */
+
+    public isWalletLogin(): boolean {
+        return this.walletLoginMode;
+    }
+
+    /**
+     * Stores wallet signature data for the pending login handshake.
+     */
+
+    public setWalletAuth(auth: { wallet: string; message: string; signature: string }): void {
+        this.walletAuth = auth;
+        this.walletLoginMode = true;
+        this.guest.checked = false;
+    }
+
+    /**
+     * Returns wallet auth data for the login packet.
+     */
+
+    public getWalletAuth():
+        | {
+              wallet: string;
+              message: string;
+              signature: string;
+          }
+        | undefined {
+        return this.walletAuth;
+    }
+
+    /**
+     * Clears wallet login mode after the login packet is sent.
+     */
+
+    public clearWalletLoginMode(): void {
+        this.walletLoginMode = false;
+        this.walletAuth = undefined;
+    }
+
+    /**
+     * Begins the standard login flow after wallet signing succeeds.
+     */
+
+    public beginWalletLogin(): void {
+        if (this.loggingIn || this.statusMessage || !this.walletAuth) return;
+
+        this.login();
+    }
+
+    /**
+     * Copies the gate token contract address from the login screen.
+     */
+    private setupTokenCaCopy(): void {
+        let button = document.querySelector<HTMLButtonElement>('#copy-token-ca'),
+            address = document.querySelector<HTMLElement>('#token-ca-address'),
+            ca = address?.textContent?.trim();
+
+        if (!button || !ca) return;
+
+        let copyButton = button,
+            caText = ca;
+
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(caText);
+                copyButton.textContent = 'COPIED';
+                window.setTimeout(() => (copyButton.textContent = 'COPY CA'), 1500);
+            } catch {
+                this.sendError('Could not copy contract address.');
+            }
+        });
+    }
+
+    /**
+     * Whether token-gated entry is active for this deployment.
+     */
+
+    public isTokenGateActive(): boolean {
+        return !!this.config.tokenGateActive;
+    }
+
+    /**
+     * Human-readable requirement shown when a wallet lacks the gate token.
+     */
+
+    public getTokenGateError(): string {
+        let amount = formatTokenAmount(
+            parseTokenAmount(this.config.tokenGateMinAmount),
+            this.config.tokenGateDecimals,
+            this.config.tokenGateSymbol
+        );
+
+        return `You need at least ${amount} in your wallet to play Chain Isles.`;
+    }
+
+    /**
+     * Hides username/password login when only token holders may enter.
+     */
+
+    private applyTokenGateUi(): void {
+        if (!this.isTokenGateActive()) return;
+
+        let notice = document.querySelector<HTMLElement>('#token-gate-notice'),
+            legacyLogin = document.querySelector<HTMLElement>('#legacy-login');
+
+        if (notice) {
+            notice.hidden = false;
+            notice.textContent = this.getTokenGateError();
+        }
+
+        legacyLogin?.classList.add('hidden');
+        this.guest.checked = false;
     }
 
     /**

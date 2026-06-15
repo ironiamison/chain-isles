@@ -8,6 +8,8 @@ import Stores from '../controllers/stores';
 import Warps from '../controllers/warps';
 import Guilds from '../controllers/guilds';
 import Crafting from '../controllers/crafting';
+import Marketplace from '../controllers/marketplace';
+import Stimulus from '../controllers/stimulus';
 import API from '../network/api';
 import Network from '../network/network';
 import Client from '../network/client';
@@ -53,6 +55,8 @@ export default class World {
     public guilds: Guilds;
     public client: Client;
     public events: Events;
+    public marketplace: Marketplace;
+    public stimulus: Stimulus;
 
     public discord: Discord = new Discord(config.hubEnabled);
 
@@ -77,6 +81,11 @@ export default class World {
         this.guilds = new Guilds(this);
         this.client = new Client(this);
         this.events = new Events(this);
+        this.stimulus = new Stimulus();
+        this.marketplace = new Marketplace(this);
+        this.socketHandler.marketplace = this.marketplace;
+        this.socketHandler.stimulus = this.stimulus;
+        this.socketHandler.world = this;
 
         this.discord.onMessage(this.globalMessage.bind(this));
 

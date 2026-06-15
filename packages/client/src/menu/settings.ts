@@ -39,6 +39,15 @@ export default class Settings extends Menu {
         '#frame-throttle > select'
     )!;
 
+    private walletNamePanel: HTMLElement = document.querySelector('#wallet-name-settings')!;
+    private walletNameInput: HTMLInputElement = document.querySelector(
+        '#wallet-display-name-input'
+    )!;
+    private walletNameStatus: HTMLElement = document.querySelector('#wallet-display-name-status')!;
+    private walletNameSave: HTMLButtonElement = document.querySelector(
+        '#wallet-display-name-save'
+    )!;
+
     public constructor(private game: Game) {
         super('#settings-page', '#close-settings', '#settings-button');
 
@@ -58,8 +67,62 @@ export default class Settings extends Menu {
         this.disableCachingCheckbox.addEventListener('change', this.handleCaching.bind(this));
         this.webGlCheckbox.addEventListener('change', this.handleWebGl.bind(this));
         this.fpsThrottleDropdown.addEventListener('change', this.handleFpsThrottle.bind(this));
+        this.walletNameSave.addEventListener('click', () => this.saveWalletDisplayName());
 
         this.load();
+    }
+
+    public override show(): void {
+        super.show();
+
+        if (this.game.player.isWallet) {
+            this.walletNamePanel.hidden = false;
+            this.walletNameInput.value = this.game.player.name;
+            this.walletNameStatus.textContent = '';
+        } else this.walletNamePanel.hidden = true;
+    }
+
+    private async saveWalletDisplayName(): Promise<void> {
+        let { solana } = this.game.app;
+
+        if (!solana?.wallet.connected || !solana.wallet.address) {
+            this.walletNameStatus.textContent = 'Connect the same wallet you used to log in.';
+            return;
+        }
+
+        let displayName = this.walletNameInput.value.trim();
+
+        if (displayName.length < 3) {
+            this.walletNameStatus.textContent = 'Name must be at least 3 characters.';
+            return;
+        }
+
+        try {
+            this.walletNameStatus.textContent = 'Sign in Phantom to save…';
+
+            let { message, signature } = await solana.wallet.signLogin(),
+                response = await fetch('/api/wallet/display-name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet: solana.wallet.address,
+                        message,
+                        signature,
+                        displayName
+                    })
+                }),
+                payload = (await response.json()) as { error?: string; displayName?: string };
+
+            if (!response.ok) throw new Error(payload.error || 'Could not save name.');
+
+            let saved = payload.displayName || displayName;
+
+            this.game.player.name = saved;
+            this.walletNameStatus.textContent = 'Name saved.';
+        } catch (error) {
+            this.walletNameStatus.textContent =
+                error instanceof Error ? error.message : 'Could not save name.';
+        }
     }
 
     /**

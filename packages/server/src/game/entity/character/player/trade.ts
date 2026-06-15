@@ -232,13 +232,13 @@ export default class Trade {
         this.lastRequest = target.instance;
 
         target.notify(
-            `misc:TRADE_REQUEST_OTHER;username=${Utils.formatName(this.player.username)}`,
+            `misc:TRADE_REQUEST_OTHER;username=${this.player.getPublicName()}`,
             'rgb(84, 224, 255)',
             'TRADE'
         );
 
         this.player.notify(
-            `misc:TRADE_REQUEST;username=${Utils.formatName(target.username)}`,
+            `misc:TRADE_REQUEST;username=${Utils.formatName(target.getPublicName())}`,
             '',
             'TRADE'
         );

@@ -1,4 +1,5 @@
 import Commands from '../../../../controllers/commands';
+import { isTokenGateActive, verifyWalletTokenGate } from '../../../../util/token-gate';
 
 import sanitizer from 'sanitizer';
 import config from '@kaetram/common/config';
@@ -8,6 +9,12 @@ import Filter from '@kaetram/common/util/filter';
 import Creator from '@kaetram/common/database/mongodb/creator';
 import { SpawnPacket, HandshakePacket as Handshake } from '@kaetram/common/network/impl';
 import { Opcodes, Packets } from '@kaetram/common/network';
+import {
+    verifyWalletLogin,
+    walletToUsername,
+    walletDefaultDisplayName,
+    isDefaultWalletDisplayName
+} from '@kaetram/common/util/wallet-login';
 
 import type Player from './player';
 import type NPC from '../../npc/npc';
@@ -78,6 +85,8 @@ export default class Incoming {
                         return this.handleReady(message);
                     }
                     case Packets.List: {
+                        this.world.map.regions.sendNearbySpawns(this.player);
+
                         return this.player.updateEntityList();
                     }
                     case Packets.Who: {
@@ -192,7 +201,39 @@ export default class Incoming {
         // Ensure the handshake has been completed before proceeding.
         if (!this.completedHandshake) return this.connection.reject('lost');
 
-        let { opcode, username, password, email } = data;
+        let { opcode, username, password, email, wallet, message, signature } = data;
+
+        if (isTokenGateActive() && opcode !== Opcodes.Login.Wallet)
+            return this.connection.reject('tokengate');
+
+        switch (opcode) {
+            case Opcodes.Login.Wallet: {
+                if (!wallet || !message || !signature)
+                    return this.connection.reject('invalidlogin');
+
+                if (!verifyWalletLogin(wallet, message, signature))
+                    return this.connection.reject('invalidlogin');
+
+                this.player.wallet = wallet;
+
+                void verifyWalletTokenGate(wallet).then((allowed) => {
+                    if (!allowed) return this.connection.reject('tokengate');
+
+                    this.completeWalletLogin();
+                });
+                return;
+            }
+
+            case Opcodes.Login.Guest: {
+                // Authenticated so that we send the logout packet to the hub.
+                this.player.authenticated = true;
+                this.player.isGuest = true; // Makes sure player doesn't get saved to database.
+                this.player.username = `guest${Utils.counter++}`; // Generate a random guest username.
+
+                this.player.load(Creator.serialize(this.player));
+                return;
+            }
+        }
 
         if (username) {
             // Format username by making it all lower case, shorter than 32 characters, and no spaces.
@@ -231,17 +272,31 @@ export default class Incoming {
 
                 return this.database.register(this.player);
             }
-
-            case Opcodes.Login.Guest: {
-                // Authenticated so that we send the logout packet to the hub.
-                this.player.authenticated = true;
-                this.player.isGuest = true; // Makes sure player doesn't get saved to database.
-                this.player.username = `guest${Utils.counter++}`; // Generate a random guest username.
-
-                this.player.load(Creator.serialize(this.player));
-                return;
-            }
         }
+    }
+
+    /**
+     * Finalizes wallet login after signature and token gate checks pass.
+     */
+
+    private completeWalletLogin(): void {
+        this.player.authenticated = true;
+        this.player.isWallet = true;
+        this.player.username = walletToUsername(this.player.wallet);
+        this.player.displayName = walletDefaultDisplayName(this.player.wallet);
+
+        if (this.world.isOnline(this.player.username)) return this.connection.reject('loggedin');
+
+        if (config.skipDatabase) {
+            this.player.load(Creator.serialize(this.player));
+            return;
+        }
+
+        this.world.api.isPlayerOnline(this.player.username, (online: boolean) => {
+            if (online) return this.connection.reject('loggedin');
+
+            this.database.walletLogin(this.player);
+        });
     }
 
     private handleReady(data: ReadyPacket): void {
@@ -253,8 +308,21 @@ export default class Incoming {
 
         this.player.ready = true;
 
+        this.world.marketplace.applyPendingForPlayer(this.player);
+        this.world.stimulus.applyPendingForPlayer(this.player);
+
+        if (
+            this.player.isWallet &&
+            this.player.wallet &&
+            isDefaultWalletDisplayName(this.player.displayName, this.player.wallet)
+        )
+            this.player.notify(
+                'Open Settings (gear icon, top-right) to choose your character name.'
+            );
+
         this.player.updateRegion();
         this.player.updateEntities();
+        this.world.map.regions.sendNearbySpawns(this.player);
         this.player.updateEntityList();
 
         this.world.syncFriendsList(this.player.username);

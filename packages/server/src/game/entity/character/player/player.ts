@@ -17,6 +17,7 @@ import Item from '../../objects/item';
 import Formulas from '../../../../info/formulas';
 
 import Utils from '@kaetram/common/util/utils';
+import { walletDefaultDisplayName } from '@kaetram/common/util/wallet-login';
 import log from '@kaetram/common/util/log';
 import config from '@kaetram/common/config';
 import { PacketType } from '@kaetram/common/network/modules';
@@ -105,6 +106,9 @@ export default class Player extends Character {
     public ready = false; // indicates if login processed finished
     public authenticated = false;
     public isGuest = false;
+    public isWallet = false;
+    public wallet = '';
+    public displayName = '';
     public canTalk = true;
     public noclip = false;
     public questsLoaded = false;
@@ -242,6 +246,18 @@ export default class Player extends Character {
         this.y = data.y;
         this.name = data.username;
         this.guild = data.guild;
+        if (data.wallet) {
+            this.wallet = data.wallet;
+            this.isWallet = true;
+        }
+
+        if (this.isWallet && this.wallet) {
+            this.displayName = data.displayName?.trim() || walletDefaultDisplayName(this.wallet);
+            this.name = Utils.formatName(this.displayName);
+        } else if (data.displayName) {
+            this.displayName = data.displayName;
+            this.name = Utils.formatName(this.displayName);
+        }
         this.rank = data.rank || Modules.Ranks.None;
         this.ban = data.ban;
         this.jail = data.jail;
@@ -491,6 +507,14 @@ export default class Player extends Character {
 
         if (this.isJailed())
             this.notify(`misc:JAILED;duration=${this.getJailDuration()}`, 'crimsonred', '', true);
+
+        if (config.skipDatabase)
+            this.notify(
+                'Progress is not saved between sessions yet — character data resets on logout.',
+                'orange',
+                '',
+                true
+            );
     }
 
     /**
@@ -626,6 +650,10 @@ export default class Player extends Character {
         if (before) this.sendTeleportPacket(x, y, withAnimation);
 
         this.setPosition(x, y, false);
+
+        // Doors/warps/respawns skip walk-based region updates — sync entities here.
+        this.map.regions.handle(this);
+
         this.world.cleanCombat(this);
 
         if (before) return;
@@ -888,6 +916,13 @@ export default class Player extends Character {
 
         let entity = this.entities.get(instance);
 
+        // Fishing spots sit on water — allow casting from the shore.
+        if (entity?.isFishSpot()) {
+            if (entity.getDistance(this) > 4) return;
+
+            return this.skills.getFishing().catch(this, entity);
+        }
+
         // Ensure that the entity is close enough to interact with.
         if (entity?.getDistance(this) > 2) return;
 
@@ -896,9 +931,6 @@ export default class Player extends Character {
 
         // If the entity is a rock we use the mining skill to handle the interaction.
         if (entity?.isRock()) this.skills.getMining().mine(this, entity);
-
-        // If the entity is a fishing spot we use the fishing skill to handle the interaction.
-        if (entity?.isFishSpot()) this.skills.getFishing().catch(this, entity);
 
         // If the entity is a forageable plant we use the foraging skill to handle the interaction.
         if (entity?.isForaging()) this.skills.getForaging().harvest(this, entity);
@@ -911,19 +943,17 @@ export default class Player extends Character {
         // If no sign was found, we attempt to find a tree.
         let coords = instance.split('-'),
             diffX = Math.abs(this.x - parseInt(coords[0])),
-            diffY = Math.abs(this.y - parseInt(coords[1]));
+            diffY = Math.abs(this.y - parseInt(coords[1])),
+            index = this.map.coordToIndex(parseInt(coords[0]), parseInt(coords[1])),
+            cursor = this.map.getCursor(index),
+            // Crafting stations — allow interaction from one tile farther (like fishing from shore).
+            maxDist =
+                cursor &&
+                ['cooking', 'smithing', 'smelting', 'crafting', 'alchemy'].includes(cursor)
+                    ? 3
+                    : 2;
 
-        // Ensure that the player is close enough to the object.
-        if (diffX > 2 || diffY > 2) return;
-
-        /**
-         * Here we use the cursor (I know, it's a bit of a hack) to handle
-         * interactions with objects in the world. Most of these
-         * are used by crafting stations.
-         */
-
-        let index = this.map.coordToIndex(parseInt(coords[0]), parseInt(coords[1])),
-            cursor = this.map.getCursor(index);
+        if (diffX > maxDist || diffY > maxDist) return;
 
         if (!cursor) return;
 
@@ -2248,7 +2278,7 @@ export default class Player extends Character {
 
         log.debug(`[${this.username}] ${message}`);
 
-        let name = Utils.formatName(this.username);
+        let name = this.getPublicName();
 
         if (this.rank !== Modules.Ranks.None) {
             name = `[${Modules.RankTitles[this.rank]}] ${name}`;
@@ -2371,6 +2401,26 @@ export default class Player extends Character {
      * @returns PlayerData containing all of the player info.
      */
 
+    /**
+     * Name shown to other players (display name for wallet logins).
+     */
+    public getPublicName(): string {
+        if (this.displayName) return Utils.formatName(this.displayName);
+
+        if (this.isWallet && this.wallet)
+            return Utils.formatName(walletDefaultDisplayName(this.wallet));
+
+        return Utils.formatName(this.username);
+    }
+
+    /**
+     * Updates the visible character name for wallet players.
+     */
+    public setDisplayName(name: string): void {
+        this.displayName = name.trim().slice(0, 16);
+        this.name = Utils.formatName(this.displayName);
+    }
+
     public override serialize(
         withEquipment = false,
         withExperience = false,
@@ -2379,7 +2429,8 @@ export default class Player extends Character {
         let data = super.serialize() as PlayerData;
 
         // Sprite key is the armour key.
-        data.name = Utils.formatName(this.username);
+        data.name = this.getPublicName();
+        data.isWallet = this.isWallet;
         data.rank = this.rank;
         data.level = this.skills.getCombatLevel();
         data.hitPoints = this.hitPoints.getHitPoints();

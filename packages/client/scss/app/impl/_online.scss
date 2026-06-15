@@ -1,0 +1,30 @@
+.online-count {
+    margin: 0 0 0.35rem;
+    font-size: 0.85em;
+    color: #8fd18f;
+    text-shadow: 0 1px 0 #000;
+}
+
+.login-options {
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 0.15rem;
+}
+
+.guest-primary {
+    width: 100%;
+    max-width: 14em;
+    margin: 0.15rem auto 0;
+    font-size: 0.95em;
+}
+
+.login-divider {
+    margin: 0.35rem 0 0.15rem;
+    font-size: 0.72em;
+    color: #c6c0a3;
+    opacity: 0.85;
+}
+
+.guest-hidden {
+    display: none !important;
+}

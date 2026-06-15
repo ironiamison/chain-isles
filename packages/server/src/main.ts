@@ -47,6 +47,8 @@ class Main {
 
         this.world = new World(this.socketHandler, this.database);
 
+        this.socketHandler.setPopulationCallback(() => this.world!.getPopulation());
+
         new Console(this.world);
     }
 

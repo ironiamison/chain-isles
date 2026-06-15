@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+**/node_modules
+.git
+.cursor
+.env
+.env.*
+!.env.defaults
+
+# Dev / test
+packages/e2e
+**/*.test.ts
+**/coverage
+
+# Anchor / program build artifacts (not needed for game server image)
+program/chainmmo/target
+program/chainmmo/node_modules
+
+# Local tooling
+terminals
+agent-tools
+agent-transcripts

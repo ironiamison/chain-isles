@@ -13,6 +13,9 @@ export interface LoginPacket {
     username?: string;
     password?: string;
     email?: string;
+    wallet?: string;
+    message?: string;
+    signature?: string;
 }
 
 export interface EquipmentPacket {

@@ -11,6 +11,15 @@ declare global {
         hub: string | false;
         sentryDsn: string;
         acceptLicense: boolean;
+        solanaCluster: 'localnet' | 'devnet' | 'mainnet-beta';
+        solanaProgramId: string;
+        solanaTreasury: string;
+        tokenGateEnabled: boolean;
+        tokenGateMint: string;
+        tokenGateMinAmount: string | number;
+        tokenGateSymbol: string;
+        tokenGateDecimals: number;
+        tokenGateActive: boolean;
     };
 
     declare module '*.vert' {

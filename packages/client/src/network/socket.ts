@@ -53,7 +53,7 @@ export default class Socket {
         host ||= this.config.host;
         port ||= this.config.port;
 
-        let url = this.config.ssl ? `wss://${host}` : `ws://${host}:${port}`;
+        let url = this.getWebSocketUrl(host, port);
 
         // Create a websocket connection with the url generated.
         this.connection = new WebSocket(url);
@@ -81,6 +81,24 @@ export default class Socket {
          */
 
         this.game.audio.createContext();
+    }
+
+    /**
+     * In production, connect to the same host that served the page (single-service deploy).
+     * In development, use values baked into globalConfig.
+     */
+    private getWebSocketUrl(host: string, port: number): string {
+        if (import.meta.env.PROD && !this.config.hub && typeof window !== 'undefined') {
+            let secure = window.location.protocol === 'https:',
+                sameHost = window.location.hostname,
+                samePort = window.location.port;
+
+            if (secure) return `wss://${sameHost}${samePort ? `:${samePort}` : ''}`;
+
+            return `ws://${sameHost}${samePort ? `:${samePort}` : ''}`;
+        }
+
+        return this.config.ssl ? `wss://${host}` : `ws://${host}:${port}`;
     }
 
     /**

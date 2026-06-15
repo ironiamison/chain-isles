@@ -2,6 +2,10 @@
     "name": "@kaetram/common",
     "type": "module",
     "types": "./types/index.d.ts",
+    "dependencies": {
+        "bs58": "^6.0.0",
+        "tweetnacl": "^0.14.3"
+    },
     "devDependencies": {
         "@types/dotenv-parse-variables": "^2.0.1",
         "bcryptjs": "^2.4.3",

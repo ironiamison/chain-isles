@@ -1,0 +1,21 @@
+{
+    "name": "@kaetram/solana",
+    "type": "module",
+    "version": "0.1.0",
+    "private": true,
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "default": "./src/index.ts"
+        }
+    },
+    "dependencies": {
+        "@coral-xyz/anchor": "^0.30.1",
+        "@solana/web3.js": "^1.98.0",
+        "bn.js": "^5.2.1",
+        "bs58": "^6.0.0"
+    }
+}

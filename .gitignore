@@ -1,4 +1,5 @@
-packages/tools/map/data/map.png
+keys/
+program/chainmmo/target/
 packages/tools/map/data/map.json
 packages/tools/map/data/rules*
 packages/tools/map/data/tilesets

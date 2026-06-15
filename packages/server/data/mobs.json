@@ -2461,6 +2461,39 @@
         }
     },
 
+    "miniiceknight": {
+        "name": "Mini Ice Knight",
+        "description": "It's a little teeny tiny knight in a little teeny tiny suit of armor.",
+        "dropTables": ["ordinary", "shards", "unusual", "arrows", "mushrooms", "fruits", "vegetables"],
+        "hitPoints": 1100,
+        "level": 144,
+        "aggroRange": 1,
+        "aggressive": true,
+        "attackRate": 1200,
+        "movementSpeed": 400,
+        "respawnDelay": 35000,
+        "attackStats": {
+            "crush": 12,
+            "slash": 18,
+            "stab": 21,
+            "archery": 0,
+            "magic": 0
+        },
+        "defenseStats": {
+            "crush": -3,
+            "slash": 14,
+            "stab": 19,
+            "archery": 12,
+            "magic": 18
+        },
+        "bonuses": {
+            "accuracy": 5,
+            "strength": 0,
+            "archery": 0,
+            "magic": 3
+        }
+    },
+
     "miniiceknight2": {
         "name": "Mini Ice Knight",
         "description": "It's a little teeny tiny knight in a little teeny tiny suit of armor.",

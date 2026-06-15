@@ -235,7 +235,7 @@ export default class Messages {
             }
 
             case 'maintenance': {
-                this.app.sendError('Kaetram is currently under maintenance.');
+                this.app.sendError('Chain Isles is currently under maintenance.');
                 break;
             }
 
@@ -308,6 +308,11 @@ export default class Messages {
 
             case 'invalidpassword': {
                 this.app.sendError('The password you have entered is invalid.');
+                break;
+            }
+
+            case 'tokengate': {
+                this.app.sendError(this.app.getTokenGateError());
                 break;
             }
 

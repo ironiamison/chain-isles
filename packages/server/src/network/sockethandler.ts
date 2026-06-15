@@ -3,6 +3,9 @@ import UWS from './sockets/uws';
 import { Modules } from '@kaetram/common/network';
 
 import type Connection from './connection';
+import type Marketplace from '../controllers/marketplace';
+import type Stimulus from '../controllers/stimulus';
+import type World from '../game/world';
 
 interface Addresses {
     [address: string]: {
@@ -14,8 +17,23 @@ interface Addresses {
 export default class SocketHandler {
     public addresses: Addresses = {}; // Keeps track of addresses, their counts, and their last connection time.
     public connections: { [instance: string]: Connection } = {}; // List of all connections to the server.
+    public marketplace?: Marketplace;
+    public stimulus?: Stimulus;
+    public world?: World;
 
     private connectionCallback?: (connection: Connection) => void;
+    private populationCallback?: () => number;
+
+    /**
+     * Used by HTTP status routes to report live player count.
+     */
+    public setPopulationCallback(callback: () => number): void {
+        this.populationCallback = callback;
+    }
+
+    public getPopulation(): number {
+        return this.populationCallback?.() ?? 0;
+    }
 
     public constructor() {
         new UWS(this).onAdd(this.add.bind(this));

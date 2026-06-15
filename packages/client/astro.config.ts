@@ -18,7 +18,20 @@ import config, { exposedConfig } from '@kaetram/common/config';
 import { i18n } from 'astro-i18n-aut/integration';
 import { locales, defaultLocale, dir, t, type Locale } from '@kaetram/common/i18n';
 
-export let env = exposedConfig('name', 'host', 'ssl', 'serverId', 'sentryDsn', 'acceptLicense');
+export let env = exposedConfig(
+    'name',
+    'host',
+    'ssl',
+    'serverId',
+    'sentryDsn',
+    'acceptLicense',
+    'tokenGateEnabled',
+    'tokenGateMint',
+    'tokenGateMinAmount',
+    'tokenGateSymbol',
+    'tokenGateDecimals',
+    'solanaCluster'
+);
 
 let clientHost = config.clientRemoteHost || (config.hubEnabled ? config.hubHost : config.host),
     clientPort = config.clientRemotePort || (config.hubEnabled ? config.hubPort : config.port),
@@ -29,7 +42,12 @@ Object.assign(env, {
     minor: config.minor,
     host: clientHost,
     port: clientPort,
-    hub: config.hubEnabled && hub
+    hub: config.hubEnabled && hub,
+    solanaCluster: process.env.SOLANA_CLUSTER || 'mainnet-beta',
+    solanaProgramId:
+        process.env.SOLANA_PROGRAM_ID || 'BkP5QCG2x67bqXkngUFRBUzoGx5fNZzW5vY2nHZydjFv',
+    solanaTreasury: process.env.SOLANA_TREASURY || '11111111111111111111111111111111',
+    tokenGateActive: !!env.tokenGateEnabled && String(env.tokenGateMint || '').trim().length > 0
 });
 
 let plugins = [
@@ -112,7 +130,7 @@ if (import.meta.env.PROD)
 // https://astro.build/config
 export default defineConfig({
     srcDir: './',
-    site: 'https://kaetram.com/',
+    site: 'https://chainisles.xyz/',
     trailingSlash: 'always',
     integrations,
     server: { host: true, port: 9000 },

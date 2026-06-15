@@ -6,6 +6,7 @@ import Loader from './loader';
 import Utils from '@kaetram/common/util/utils';
 import log from '@kaetram/common/util/log';
 import Filter from '@kaetram/common/util/filter';
+import { walletDefaultDisplayName } from '@kaetram/common/util/wallet-login';
 import { MongoClient, ObjectId } from 'mongodb';
 
 import type Player from '@kaetram/server/src/game/entity/character/player/player';
@@ -114,6 +115,47 @@ export default class MongoDB {
                 });
             }
         });
+    }
+
+    /**
+     * Logs in or creates a player account tied to a verified Solana wallet.
+     * @param player Player object with username derived from the wallet address.
+     */
+
+    public walletLogin(player: Player): void {
+        if (!this.hasDatabase()) return;
+
+        let cursor = this.database
+            .collection<PlayerInfo>('player_info')
+            .find({ username: player.username });
+
+        cursor.toArray().then((playerInfo) => {
+            player.authenticated = true;
+
+            if (playerInfo.length === 0) {
+                player.email = `${player.username}@wallet.chainisles`;
+                player.password = player.wallet;
+                player.statistics.creationTime = Date.now();
+                player.displayName = walletDefaultDisplayName(player.wallet);
+
+                log.debug(`Creating wallet player ${player.username}.`);
+
+                return player.load(Creator.serialize(player));
+            }
+
+            player.load(playerInfo[0]!);
+        });
+    }
+
+    /**
+     * Updates the visible name for a wallet-linked account.
+     */
+    public async updateDisplayName(username: string, displayName: string): Promise<void> {
+        if (!this.hasDatabase()) return;
+
+        await this.database
+            .collection<PlayerInfo>('player_info')
+            .updateOne({ username }, { $set: { displayName } });
     }
 
     /**

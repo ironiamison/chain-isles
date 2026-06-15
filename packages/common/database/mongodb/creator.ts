@@ -23,6 +23,8 @@ export interface PlayerInfo {
     username: string;
     password: string;
     email: string;
+    wallet?: string;
+    displayName?: string;
     x: number;
     y: number;
     userAgent: string;
@@ -278,6 +280,8 @@ export default class Creator {
             username: player.username,
             password: player.password,
             email: player.email,
+            wallet: player.wallet || undefined,
+            displayName: player.displayName || undefined,
             x: player.x,
             y: player.y,
             userAgent: player.userAgent,

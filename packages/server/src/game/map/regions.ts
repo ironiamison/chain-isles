@@ -240,9 +240,15 @@ export default class Regions {
     private handleEnter(entity: Entity, region: number): void {
         if (!entity.isPlayer() || !entity.ready) return;
 
+        let player = entity as Player;
+
         log.debug(`Entity: ${entity.instance} entering region: ${region}.`);
 
-        this.sendRegion(entity);
+        // Map tiles first, then entity spawns, then the spawn list last — same order as login.
+        // Sending the list before spawns caused trees/rocks to be despawned on region change.
+        this.sendRegion(player);
+        this.sendNearbySpawns(player);
+        this.sendEntities(player);
     }
 
     /**
@@ -337,9 +343,52 @@ export default class Regions {
     public sendEntities(player: Player): void {
         if (player.region === -1) return;
 
-        let entities: string[] = this.regions[player.region].getEntities(player, player as Entity);
+        let entities: string[] = [],
+            instances: string[] = [];
+
+        // Match map tile loading — include all surrounding regions, not just the player's.
+        this.forEachSurroundingRegion(player.region, (surroundingRegion: number) => {
+            let region = this.regions[surroundingRegion];
+
+            if (!region) return;
+
+            for (let instance of region.getEntities(player, player as Entity)) {
+                if (instances.includes(instance)) continue;
+
+                entities.push(instance);
+                instances.push(instance);
+            }
+        });
 
         player.send(new ListPacket(Opcodes.List.Spawns, { entities }));
+    }
+
+    /**
+     * Push spawn packets for every entity in surrounding regions directly to the player.
+     * Avoids relying solely on the List + Who round-trip (which can miss static resources).
+     */
+    public sendNearbySpawns(player: Player): void {
+        if (player.region === -1 || !player.ready) return;
+
+        let sent = new Set<string>();
+
+        this.forEachSurroundingRegion(player.region, (surroundingRegion) => {
+            let region = this.regions[surroundingRegion];
+
+            if (!region) return;
+
+            region.forEachEntity((entity) => {
+                if (entity.instance === player.instance) return;
+                if (!entity.isVisible(player)) return;
+                if (sent.has(entity.instance)) return;
+
+                sent.add(entity.instance);
+
+                player.send(
+                    new SpawnPacket(entity, entity.hasDisplayInfo(player) ? player : undefined)
+                );
+            });
+        });
     }
 
     /**
@@ -639,7 +688,12 @@ export default class Regions {
 
             let cursor = this.map.cursors[tileId];
 
-            if (cursor) tile.cur = cursor;
+            if (cursor) {
+                tile.cur = cursor;
+                // Any cursor tile is interactable (cooking pot, anvil, etc.)
+                tile.o = true;
+                tile.c = true;
+            }
         });
 
         return tile;

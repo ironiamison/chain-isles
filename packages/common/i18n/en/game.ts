@@ -1,5 +1,5 @@
 export default {
-    NAME: 'Kaetram',
+    NAME: 'Chain Isles',
     DESCRIPTION:
-        "Kaetram is an open-source game-engine created to aid those interested in entering the game development realm. The original idea is based on Little Workshop's demo game - BrowserQuest. The assets have remained the same, but the code itself has been completely wiped and redone from the ground up."
+        'Chain Isles is a Kaetram Solana fork — a browser-based 2D MMORPG. Claim your place among the islands, skill up, fight, trade, and earn on-chain.'
 } as const;

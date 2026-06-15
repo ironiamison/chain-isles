@@ -128,5 +128,5 @@
         "no-iterator": "error",
         "no-labels": "error"
     },
-    "ignorePatterns": ["node_modules", "dist"]
+    "ignorePatterns": ["node_modules", "dist", "program/chainmmo/tests/**"]
 }

@@ -1,5 +1,9 @@
 import WebSocket from '../websocket';
 import Connection from '../connection';
+import StaticServer from '../static';
+import { handleMarketplaceRequest } from '../../controllers/marketplace';
+import { handleDisplayNameRequest } from '../../controllers/wallet-profile';
+import { getOnchainHealth } from '../../util/onchain-health';
 
 import log from '@kaetram/common/util/log';
 import config from '@kaetram/common/config';
@@ -13,11 +17,53 @@ import type { WebSocket as WS, HttpRequest, HttpResponse, us_socket_context_t } 
 import type { ConnectionInfo } from '@kaetram/common/types/network';
 
 export default class UWS extends WebSocket {
+    private staticServer = new StaticServer();
+
     public constructor(socketHandler: SocketHandler) {
         super(config.host, config.port, socketHandler);
 
         App({})
-            .get('/*', this.httpResponse.bind(this))
+            .get('/api/status', (response) => {
+                response.cork(() => {
+                    response
+                        .writeStatus('200 OK')
+                        .writeHeader('Content-Type', 'application/json; charset=utf-8')
+                        .writeHeader('Cache-Control', 'no-store')
+                        .writeHeader('Access-Control-Allow-Origin', '*')
+                        .end(
+                            JSON.stringify({
+                                name: config.name,
+                                playerCount: this.socketHandler.getPopulation(),
+                                maxPlayers: config.maxPlayers,
+                                onchain: getOnchainHealth(),
+                                stimulus: this.socketHandler.stimulus?.getPublicInfo() ?? {
+                                    enabled: false
+                                }
+                            })
+                        );
+                });
+            })
+            .post('/api/marketplace/sync-gold', (response, request) =>
+                this.handleJsonPost(response, request, (body) =>
+                    handleMarketplaceRequest(
+                        this.socketHandler.marketplace,
+                        '/api/marketplace/sync-gold',
+                        body
+                    )
+                )
+            )
+            .options('/api/marketplace/sync-gold', (response) => {
+                this.writeOptions(response);
+            })
+            .post('/api/wallet/display-name', (response, request) =>
+                this.handleJsonPost(response, request, (body) =>
+                    handleDisplayNameRequest(this.socketHandler.world, body)
+                )
+            )
+            .options('/api/wallet/display-name', (response) => {
+                this.writeOptions(response);
+            })
+            .get('/*', (response, request) => this.staticServer.handle(response, request))
             .ws('/*', {
                 compression: DISABLED,
                 idleTimeout: 15,
@@ -123,5 +169,46 @@ export default class UWS extends WebSocket {
         this.socketHandler.remove(connection.instance);
 
         connection.handleClose();
+    }
+
+    private writeOptions(response: HttpResponse): void {
+        response.cork(() => {
+            response
+                .writeStatus('204 No Content')
+                .writeHeader('Access-Control-Allow-Origin', '*')
+                .writeHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+                .writeHeader('Access-Control-Allow-Headers', 'Content-Type')
+                .end('');
+        });
+    }
+
+    private handleJsonPost(
+        response: HttpResponse,
+        request: HttpRequest,
+        handler: (body: string) => Promise<{ status: number; body: string }>
+    ): void {
+        let chunks: Buffer[] = [];
+
+        response.onAborted(() => {
+            chunks = [];
+        });
+
+        response.onData((chunk, isLast) => {
+            chunks.push(Buffer.from(chunk));
+
+            if (!isLast) return;
+
+            let body = Buffer.concat(chunks).toString('utf8');
+
+            void handler(body).then(({ status, body: payload }) => {
+                response.cork(() => {
+                    response
+                        .writeStatus(`${status}`)
+                        .writeHeader('Content-Type', 'application/json; charset=utf-8')
+                        .writeHeader('Access-Control-Allow-Origin', '*')
+                        .end(payload);
+                });
+            });
+        });
     }
 }

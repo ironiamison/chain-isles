@@ -85,6 +85,20 @@
         ]
     },
 
+    "oak6": {
+        "name": "Oak",
+        "levelRequirement": 1,
+        "experience": 10,
+        "difficulty": 10,
+        "item": "logs",
+        "randomItems": [
+            {
+                "key": "apple",
+                "chance": 800
+            }
+        ]
+    },
+
     "snowoak": {
         "name": "Snow Oak",
         "levelRequirement": 20,
@@ -230,6 +244,14 @@
 
     "flastel": {
         "name": "Flastel",
+        "levelRequirement": 50,
+        "experience": 400,
+        "difficulty": 320,
+        "item": "bloodwoodlogs"
+    },
+
+    "inibti": {
+        "name": "Inibti",
         "levelRequirement": 50,
         "experience": 400,
         "difficulty": 320,

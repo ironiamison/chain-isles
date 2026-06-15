@@ -15,7 +15,7 @@
             <div id="close-welcome" class="close-container"></div>
 
             <div id="welcome-info">
-                <h1>Welcome to Kaetram!</h1>
+                <h1>Welcome to Chain Isles!</h1>
 
                 <div id="welcome-stats">
                     <strong>Last login:</strong>
@@ -43,6 +43,10 @@
                             Use <strong>WASD</strong>, the <strong>Arrow Keys</strong>, or <strong
                                 >Click</strong
                             > to move around.
+                        </span>
+                        <span>
+                            Open the <strong>gear icon</strong> (top-right) for settings, audio, and
+                            your character name.
                         </span>
 
                         <div class="welcome-controls">
@@ -79,6 +83,7 @@
         </div>
 
         <div id="player-info">
+            <div id="online-count-game" class="online-count in-game">Players online: —</div>
             <div id="health" class="safari-only">
                 <div id="health-mask" class="health-mask-base"></div>
                 <div class="health-text stroke"></div>
@@ -98,6 +103,7 @@
             <li><div id="friends-button"></div></li>
             <li><div id="chat-button"></div></li>
             <li><div id="settings-button"></div></li>
+            <li><div id="open-marketplace" class="marketplace-button" title="Marketplace">MKT</div></li>
         </ul>
 
         <div id="chat">
@@ -360,6 +366,33 @@
                             </select>
                         </label>
                     </div>
+                </div>
+
+                <div id="wallet-name-settings" class="slice-inner-container" hidden>
+                    <h2>Character Name</h2>
+                    <p class="wallet-name-help">
+                        Pick a short name other players see (3–16 letters, numbers, underscores).
+                    </p>
+                    <label>
+                        <span id="wallet-display-name-text">Display name</span>
+                        <input
+                            id="wallet-display-name-input"
+                            type="text"
+                            class="stroke slice-input"
+                            maxlength="16"
+                            autocomplete="off"
+                            placeholder="YourName"
+                            aria-labelledby="wallet-display-name-text"
+                        />
+                    </label>
+                    <p id="wallet-display-name-status" class="wallet-name-status"></p>
+                    <button
+                        type="button"
+                        id="wallet-display-name-save"
+                        class="stroke slice-button"
+                    >
+                        SAVE NAME
+                    </button>
                 </div>
 
                 <div id="action-settings">
@@ -946,6 +979,66 @@
 
             <div class="slice-inner-container"></div>
             <div class="slice-inner-container"></div>
+        </div>
+
+        <div id="marketplace" class="slice-container marketplace-panel">
+            <div id="close-marketplace" class="close-container"></div>
+
+            <h1 class="title-decoration">Gold Marketplace</h1>
+            <p class="marketplace-copy">
+                List in-game gold for SOL. Buyers pay on-chain; gold delivery is confirmed by the
+                game server.
+            </p>
+            <p id="marketplace-stimulus-copy" class="marketplace-stimulus-copy"></p>
+            <p id="marketplace-status" class="marketplace-status"></p>
+
+            <div class="marketplace-actions slice-inner-container">
+                <label>
+                    Gold amount
+                    <input
+                        id="marketplace-gold-input"
+                        type="number"
+                        min="1"
+                        class="stroke slice-input"
+                        placeholder="1000"
+                    />
+                </label>
+                <label>
+                    Price (SOL)
+                    <input
+                        id="marketplace-price-input"
+                        type="number"
+                        min="0.001"
+                        step="0.001"
+                        class="stroke slice-input"
+                        placeholder="0.1"
+                    />
+                </label>
+                <div class="button-row">
+                    <button
+                        type="button"
+                        id="marketplace-register"
+                        class="stroke slice-button"
+                    >
+                        LINK CHARACTER
+                    </button>
+                    <button type="button" id="marketplace-sync-gold" class="stroke slice-button">
+                        SYNC GOLD
+                    </button>
+                    <button
+                        type="button"
+                        id="marketplace-create-listing"
+                        class="stroke slice-button"
+                    >
+                        CREATE LISTING
+                    </button>
+                </div>
+            </div>
+
+            <div class="slice-inner-container">
+                <h2>Active Listings</h2>
+                <ul id="marketplace-listings"></ul>
+            </div>
         </div>
     </div>
 </div>

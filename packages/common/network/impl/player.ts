@@ -16,6 +16,7 @@ export interface PlayerData extends EntityData {
     rank: Modules.Ranks;
     pvp: boolean;
     orientation: number;
+    isWallet?: boolean;
 
     experience?: number;
     nextExperience?: number;

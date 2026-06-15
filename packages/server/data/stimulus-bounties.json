@@ -1,0 +1,36 @@
+{
+    "enabled": true,
+    "description": "Rotating category bonuses for open-market item buys. Hook: Stimulus.applyItemPurchase()",
+    "categories": {
+        "gold": {
+            "label": "Gold Marketplace",
+            "bonusBps": 0
+        },
+        "weapon": {
+            "label": "Weapons Week",
+            "bonusBps": 0
+        },
+        "armour": {
+            "label": "Armour Week",
+            "bonusBps": 0
+        },
+        "pendant": {
+            "label": "Accessories",
+            "bonusBps": 0
+        },
+        "boots": {
+            "label": "Boots & Legs",
+            "bonusBps": 0
+        }
+    },
+    "itemOverrides": {
+        "elementalsword": {
+            "label": "Elemental Sword bounty",
+            "bonusBps": 2000
+        },
+        "legendaryarmorset": {
+            "label": "Legendary gear bounty",
+            "bonusBps": 1500
+        }
+    }
+}

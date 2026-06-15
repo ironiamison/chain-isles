@@ -1,5 +1,6 @@
 import App from './app';
 import Game from './game';
+import SolanaController from './solana/controller';
 
 import './lib/i18n';
 import './lib/sentry';
@@ -10,5 +11,10 @@ import './lib/sentry';
  */
 
 window.addEventListener('load', () => {
-    new Game(new App());
+    let app = new App(),
+        solana = new SolanaController(app),
+        game = new Game(app);
+
+    solana.attachGame(game);
+    app.solana = solana;
 });

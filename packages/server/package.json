@@ -8,6 +8,7 @@
     },
     "dependencies": {
         "@kaetram/common": "workspace:*",
+        "@kaetram/solana": "workspace:*",
         "@sentry/node": "^7.68.0",
         "@sentry/tracing": "^7.68.0",
         "axios": "^1.5.0",

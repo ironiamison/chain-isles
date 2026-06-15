@@ -1,6 +1,6 @@
 {
-    "name": "Welcome to Kaetram",
-    "description": "Teaching you the very basics of Kaetram.|This tutorial will teach you how to move around, attack, interact with objects and use ranged weapons. Follow the arrows and talk to the NPCs if you are stuck.",
+    "name": "Welcome to Chain Isles",
+    "description": "Teaching you the very basics of Chain Isles.|This tutorial will teach you how to move around, attack, interact with objects and use ranged weapons. Follow the arrows and talk to the NPCs if you are stuck.",
     "rewards": ["Knowledge of the game :)"],
     "stages": {
         "0": {
@@ -18,6 +18,8 @@
                 "So, I created you in order to stop them and save us all.",
                 "Before we get to any of that, we need to teach you some of the basics.",
                 "You can move around by clicking, or using WASD keys, or arrow keys.",
+                "Open the gear icon (top-right) anytime for audio, controls, and your character name.",
+                "Wallet players: Settings lets you pick a short display name others see in-game.",
                 "Make sure you talk to everyone you meet fully, you never know what you might learn.",
                 "Whenever you feel like you're ready, head on outside and talk to the guard."
             ],
@@ -43,7 +45,7 @@
             "npc": "guard",
             "text": [
                 "Oh great anot- nevermind.",
-                "Welcome to the world of Kaetram.",
+                "Welcome to the world of Chain Isles.",
                 "I'm here to teach you about skills and combat.",
                 "Skills are activities that allow you to collect items and gain experience.",
                 "You can use the experience to discover new areas and engage in more complex tasks.",
@@ -104,10 +106,13 @@
             "hasItemText": [
                 "Awesome, just bear with me a little longer.",
                 "I know it's boring but I am obligated to teach you this.",
-                "Now take this fishing pole and go catch two shrimps for me."
+                "Now take this fishing pole and go catch two shrimps for me.",
+                "Equip the pole, then click the ripples in the pond from the shore — you don't need to stand in the water."
             ],
 
-            "completedText": ["Go on, catch two shrimps for me."],
+            "completedText": [
+                "Equip the fishing pole and catch 2 shrimp from the pond (click the ripples from the shore)."
+            ],
 
             "itemRequirements": [
                 {
@@ -131,7 +136,12 @@
         "6": {
             "task": "fish",
             "fish": "tutorialshrimpspot",
-            "fishCount": 2
+            "fishCount": 2,
+            "pointer": {
+                "type": 0,
+                "x": 49,
+                "y": 611
+            }
         },
 
         "7": {
@@ -141,13 +151,16 @@
             "text": [
                 "Great, one more thing and we're done with the boring stuff.",
                 "It's as much of a chore for me as it is for you so don't worry.",
-                "Go click on that cooking pot and cook these shrimps for me."
+                "Walk to the stone cooking pot northeast of the pond and click it.",
+                "Select raw shrimp from the cooking menu to cook them."
             ],
-            "completedText": ["Go on, cook the shrimps for me."],
+            "completedText": [
+                "Click the stone cooking pot (northeast of the pond), then cook your raw shrimp."
+            ],
             "pointer": {
                 "type": 0,
-                "x": 60,
-                "y": 602
+                "x": 56,
+                "y": 608
             }
         },
 

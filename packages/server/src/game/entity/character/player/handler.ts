@@ -359,8 +359,7 @@ export default class Handler {
 
         this.handleLights(region);
 
-        this.player.updateEntityList();
-        //this.player.updateEntityPositions();
+        // Entity list sync runs from regions.handleEnter after spawn packets are sent.
 
         this.player.lastRegionChange = Date.now();
     }

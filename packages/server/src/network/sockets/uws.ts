@@ -36,6 +36,11 @@ export default class UWS extends WebSocket {
                                 playerCount: this.socketHandler.getPopulation(),
                                 maxPlayers: config.maxPlayers,
                                 onchain: getOnchainHealth(),
+                                database: {
+                                    enabled: !config.skipDatabase,
+                                    connected:
+                                        this.socketHandler.world?.database?.connected() ?? false
+                                },
                                 stimulus: this.socketHandler.stimulus?.getPublicInfo() ?? {
                                     enabled: false
                                 }

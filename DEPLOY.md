@@ -33,11 +33,24 @@ bash scripts/deploy-railway.sh
 | `GAME_AUTHORITY_SECRET` | JSON array from `keys/game-authority.json` |
 | `SOLANA_PROGRAM_ID` | deployed program id (after `scripts/deploy-anchor.sh`) |
 
-### Persistent characters (MongoDB Atlas)
+### Persistent characters (MongoDB)
 
-1. Create free cluster at [MongoDB Atlas](https://www.mongodb.com/atlas)
-2. Network access: allow `0.0.0.0/0` (or Railway egress IPs)
-3. Set env vars:
+**Production (Railway):** add a **MongoDB** plugin in the same Railway project. The game service connects over the private network:
+
+| Variable | Value |
+|----------|-------|
+| `SKIP_DATABASE` | `false` |
+| `MONGODB_HOST` | `mongodb.railway.internal` |
+| `MONGODB_PORT` | `27017` |
+| `MONGODB_USER` / `MONGODB_PASSWORD` | From the MongoDB service variables |
+| `MONGODB_DATABASE` | `chainisles` |
+| `MONGODB_AUTH_SOURCE` | `admin` |
+| `MONGODB_TLS` | `false` |
+| `MONGODB_SRV` | `false` |
+
+Verify: `curl https://www.chainisles.xyz/api/status` → `"database":{"enabled":true,"connected":true}`
+
+**Alternative (MongoDB Atlas):**
 
 | Variable | Value |
 |----------|-------|

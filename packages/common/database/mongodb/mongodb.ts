@@ -528,6 +528,13 @@ export default class MongoDB {
     }
 
     /**
+     * Whether a live MongoDB connection is established.
+     */
+    public connected(): boolean {
+        return !!this.database;
+    }
+
+    /**
      * Checks whether or not a connection has been established.
      * @returns If the database element is present.
      */

@@ -3,7 +3,7 @@ import Connection from '../connection';
 import StaticServer from '../static';
 import { handleMarketplaceRequest } from '../../controllers/marketplace';
 import { handleDisplayNameRequest } from '../../controllers/wallet-profile';
-import { getOnchainHealth, ensureWalletBalances } from '../../util/onchain-health';
+import { getOnchainHealth } from '../../util/onchain-health';
 
 import log from '@kaetram/common/util/log';
 import config from '@kaetram/common/config';
@@ -24,34 +24,29 @@ export default class UWS extends WebSocket {
 
         App({})
             .get('/api/status', (response) => {
-                void ensureWalletBalances()
-                    .catch(() => {})
-                    .finally(() => {
-                        response.cork(() => {
-                            response
-                                .writeStatus('200 OK')
-                                .writeHeader('Content-Type', 'application/json; charset=utf-8')
-                                .writeHeader('Cache-Control', 'no-store')
-                                .writeHeader('Access-Control-Allow-Origin', '*')
-                                .end(
-                                    JSON.stringify({
-                                        name: config.name,
-                                        playerCount: this.socketHandler.getPopulation(),
-                                        maxPlayers: config.maxPlayers,
-                                        onchain: getOnchainHealth(),
-                                        database: {
-                                            enabled: !config.skipDatabase,
-                                            connected:
-                                                this.socketHandler.world?.database?.connected() ??
-                                                false
-                                        },
-                                        stimulus: this.socketHandler.stimulus?.getPublicInfo() ?? {
-                                            enabled: false
-                                        }
-                                    })
-                                );
-                        });
-                    });
+                response.cork(() => {
+                    response
+                        .writeStatus('200 OK')
+                        .writeHeader('Content-Type', 'application/json; charset=utf-8')
+                        .writeHeader('Cache-Control', 'no-store')
+                        .writeHeader('Access-Control-Allow-Origin', '*')
+                        .end(
+                            JSON.stringify({
+                                name: config.name,
+                                playerCount: this.socketHandler.getPopulation(),
+                                maxPlayers: config.maxPlayers,
+                                onchain: getOnchainHealth(),
+                                database: {
+                                    enabled: !config.skipDatabase,
+                                    connected:
+                                        this.socketHandler.world?.database?.connected() ?? false
+                                },
+                                stimulus: this.socketHandler.stimulus?.getPublicInfo() ?? {
+                                    enabled: false
+                                }
+                            })
+                        );
+                });
             })
             .post('/api/marketplace/sync-gold', (response, request) =>
                 this.handleJsonPost(response, request, (body) =>
@@ -204,21 +199,36 @@ export default class UWS extends WebSocket {
         });
 
         response.onData((chunk, isLast) => {
-            chunks.push(Buffer.from(chunk));
+            // Copy immediately — uWS may detach the ArrayBuffer after this callback.
+            chunks.push(Buffer.from(new Uint8Array(chunk)));
 
             if (!isLast) return;
 
             let body = Buffer.concat(chunks).toString('utf8');
 
-            void handler(body).then(({ status, body: payload }) => {
-                response.cork(() => {
-                    response
-                        .writeStatus(`${status}`)
-                        .writeHeader('Content-Type', 'application/json; charset=utf-8')
-                        .writeHeader('Access-Control-Allow-Origin', '*')
-                        .end(payload);
+            chunks = [];
+
+            void handler(body)
+                .then(({ status, body: payload }) => {
+                    response.cork(() => {
+                        response
+                            .writeStatus(`${status}`)
+                            .writeHeader('Content-Type', 'application/json; charset=utf-8')
+                            .writeHeader('Access-Control-Allow-Origin', '*')
+                            .end(payload);
+                    });
+                })
+                .catch((error) => {
+                    log.error(`HTTP handler failed: ${error}`);
+
+                    response.cork(() => {
+                        response
+                            .writeStatus('500 Internal Server Error')
+                            .writeHeader('Content-Type', 'application/json; charset=utf-8')
+                            .writeHeader('Access-Control-Allow-Origin', '*')
+                            .end(JSON.stringify({ error: 'Internal server error' }));
+                    });
                 });
-            });
         });
     }
 }

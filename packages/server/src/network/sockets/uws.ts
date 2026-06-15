@@ -3,7 +3,7 @@ import Connection from '../connection';
 import StaticServer from '../static';
 import { handleMarketplaceRequest } from '../../controllers/marketplace';
 import { handleDisplayNameRequest } from '../../controllers/wallet-profile';
-import { getOnchainHealth } from '../../util/onchain-health';
+import { getOnchainHealth, ensureWalletBalances } from '../../util/onchain-health';
 
 import log from '@kaetram/common/util/log';
 import config from '@kaetram/common/config';
@@ -24,29 +24,34 @@ export default class UWS extends WebSocket {
 
         App({})
             .get('/api/status', (response) => {
-                response.cork(() => {
-                    response
-                        .writeStatus('200 OK')
-                        .writeHeader('Content-Type', 'application/json; charset=utf-8')
-                        .writeHeader('Cache-Control', 'no-store')
-                        .writeHeader('Access-Control-Allow-Origin', '*')
-                        .end(
-                            JSON.stringify({
-                                name: config.name,
-                                playerCount: this.socketHandler.getPopulation(),
-                                maxPlayers: config.maxPlayers,
-                                onchain: getOnchainHealth(),
-                                database: {
-                                    enabled: !config.skipDatabase,
-                                    connected:
-                                        this.socketHandler.world?.database?.connected() ?? false
-                                },
-                                stimulus: this.socketHandler.stimulus?.getPublicInfo() ?? {
-                                    enabled: false
-                                }
-                            })
-                        );
-                });
+                void ensureWalletBalances()
+                    .catch(() => {})
+                    .finally(() => {
+                        response.cork(() => {
+                            response
+                                .writeStatus('200 OK')
+                                .writeHeader('Content-Type', 'application/json; charset=utf-8')
+                                .writeHeader('Cache-Control', 'no-store')
+                                .writeHeader('Access-Control-Allow-Origin', '*')
+                                .end(
+                                    JSON.stringify({
+                                        name: config.name,
+                                        playerCount: this.socketHandler.getPopulation(),
+                                        maxPlayers: config.maxPlayers,
+                                        onchain: getOnchainHealth(),
+                                        database: {
+                                            enabled: !config.skipDatabase,
+                                            connected:
+                                                this.socketHandler.world?.database?.connected() ??
+                                                false
+                                        },
+                                        stimulus: this.socketHandler.stimulus?.getPublicInfo() ?? {
+                                            enabled: false
+                                        }
+                                    })
+                                );
+                        });
+                    });
             })
             .post('/api/marketplace/sync-gold', (response, request) =>
                 this.handleJsonPost(response, request, (body) =>

@@ -1,5 +1,5 @@
 import { getGameAuthorityKeypair } from '../util/game-authority';
-import { refreshProgramDeployment } from '../util/onchain-health';
+import { refreshProgramDeployment, startWalletBalanceRefresh } from '../util/onchain-health';
 
 import config from '@kaetram/common/config';
 import log from '@kaetram/common/util/log';
@@ -46,6 +46,7 @@ export default class Marketplace {
         this.pollTimer = setInterval(() => this.pollEvents(), 12_000);
 
         void refreshProgramDeployment();
+        startWalletBalanceRefresh();
 
         log.notice('Marketplace listener started (ListingPurchased + server-attested sync).');
     }
